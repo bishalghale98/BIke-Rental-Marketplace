@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Controllers\AccountDeletionController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterCompanyController;
 use App\Http\Controllers\Auth\RegisterCustomerController;
+use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
+use App\Http\Controllers\Company\VerificationController as CompanyVerificationController;
+use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
+use App\Http\Controllers\Customer\VerificationController as CustomerVerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -40,6 +45,8 @@ Route::middleware('auth')->group(function () {
         return redirect('/');
     })->name('logout');
 
+    Route::post('/account/deactivate', [AccountDeletionController::class, 'deactivate'])->name('account.deactivate');
+
     Route::prefix('customer')->name('customer.')->middleware('role:Customer')->group(function () {
         Route::get('/dashboard', function () {
             return view('customer.dashboard');
@@ -61,13 +68,11 @@ Route::middleware('auth')->group(function () {
             return view('customer.invoices');
         })->name('invoices');
 
-        Route::get('/profile', function () {
-            return view('customer.profile');
-        })->name('profile');
+        Route::get('/profile', [CustomerProfileController::class, 'edit'])->name('profile');
+        Route::put('/profile', [CustomerProfileController::class, 'update'])->name('profile.update');
 
-        Route::get('/verification', function () {
-            return view('customer.verification');
-        })->name('verification');
+        Route::get('/verification', [CustomerVerificationController::class, 'show'])->name('verification');
+        Route::post('/verification', [CustomerVerificationController::class, 'submit'])->name('verification.submit');
     });
 
     Route::prefix('company')->name('company.')->middleware('role:Company')->group(function () {
@@ -99,8 +104,10 @@ Route::middleware('auth')->group(function () {
             return view('company.reports');
         })->name('reports');
 
-        Route::get('/profile', function () {
-            return view('company.profile');
-        })->name('profile');
+        Route::get('/profile', [CompanyProfileController::class, 'edit'])->name('profile');
+        Route::put('/profile', [CompanyProfileController::class, 'update'])->name('profile.update');
+
+        Route::get('/verification', [CompanyVerificationController::class, 'show'])->name('verification');
+        Route::post('/verification', [CompanyVerificationController::class, 'submit'])->name('verification.submit');
     });
 });

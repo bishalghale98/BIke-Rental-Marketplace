@@ -36,15 +36,23 @@
 
 ## Phase 1 — Authentication & Role Management
 
-- [ ] Customer registration
-- [ ] Company registration
-- [ ] Login with role-based redirect
+- [x] Customer registration
+- [x] Company registration
+- [x] Login with role-based redirect
+- [x] Spatie roles seeded (Customer, Company, Admin)
+- [x] Role-based middleware
 - [ ] Password reset
 - [ ] Email verification (stub)
-- [ ] Spatie roles seeded (Customer, Company, Admin)
-- [ ] Role-based middleware
 
-**Status:** ⬜ Not Started
+**Status:** ✅ Completed (July 3, 2026)
+
+**Notes:**
+- Customer registration auto-assigns `Customer` role and redirects to customer dashboard
+- Company registration auto-creates `CompanyProfile` with pending verification status
+- Login controller redirects to the correct dashboard based on role
+- `UserRoleMiddleware` registered as `role:` alias for route middleware
+- Profile models (CompanyProfile, CustomerProfile, CustomerVerification, CompanyVerification) created with migrations
+- Password reset and email verification deferred to later phase as they depend on mail configuration
 
 ---
 
