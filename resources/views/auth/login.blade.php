@@ -6,9 +6,16 @@
     <x-card>
         <h2 class="text-xl font-semibold text-gray-900">Log In</h2>
         <p class="mt-1 text-sm text-gray-600">Welcome back to {{ config('app.name') }}.</p>
-        <form class="mt-6 space-y-4">
+
+        @if ($errors->any())
+            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('login') }}" class="mt-6 space-y-4">
             @csrf
-            <x-input label="Email" name="email" type="email" required />
+            <x-input label="Email" name="email" type="email" required value="{{ old('email') }}" />
             <x-input label="Password" name="password" type="password" required />
             <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 text-sm text-gray-600">

@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterCompanyController;
+use App\Http\Controllers\Auth\RegisterCustomerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,13 +18,18 @@ Route::get('/bikes/{id}', function ($id) {
 })->name('bikes.show');
 
 Route::middleware('guest')->group(function () {
-    Route::get('/login', function () {
-        return view('auth.login');
-    })->name('login');
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store']);
 
     Route::get('/register', function () {
         return view('auth.register');
     })->name('register');
+
+    Route::get('/register/customer', [RegisterCustomerController::class, 'create'])->name('register.customer');
+    Route::post('/register/customer', [RegisterCustomerController::class, 'store']);
+
+    Route::get('/register/company', [RegisterCompanyController::class, 'create'])->name('register.company');
+    Route::post('/register/company', [RegisterCompanyController::class, 'store']);
 });
 
 Route::middleware('auth')->group(function () {
@@ -32,7 +40,7 @@ Route::middleware('auth')->group(function () {
         return redirect('/');
     })->name('logout');
 
-    Route::prefix('customer')->name('customer.')->group(function () {
+    Route::prefix('customer')->name('customer.')->middleware('role:Customer')->group(function () {
         Route::get('/dashboard', function () {
             return view('customer.dashboard');
         })->name('dashboard');
@@ -62,7 +70,7 @@ Route::middleware('auth')->group(function () {
         })->name('verification');
     });
 
-    Route::prefix('company')->name('company.')->group(function () {
+    Route::prefix('company')->name('company.')->middleware('role:Company')->group(function () {
         Route::get('/dashboard', function () {
             return view('company.dashboard');
         })->name('dashboard');

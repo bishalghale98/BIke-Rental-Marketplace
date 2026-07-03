@@ -8,13 +8,15 @@
         <p class="mt-1 text-sm text-gray-600">Join {{ config('app.name') }} today.</p>
 
         <div class="mt-6 grid grid-cols-2 gap-4">
-            <a href="#" class="block text-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <div class="text-2xl mb-1">👤</div>
-                Register as Customer
+            <a href="{{ route('register.customer') }}" class="block text-center px-4 py-6 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-900 hover:bg-gray-50 transition-colors">
+                <div class="text-3xl mb-2">👤</div>
+                <div class="font-semibold text-gray-900">Customer</div>
+                <div class="text-xs text-gray-500 mt-1">Browse and book bikes</div>
             </a>
-            <a href="#" class="block text-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <div class="text-2xl mb-1">🏢</div>
-                Register as Company
+            <a href="{{ route('register.company') }}" class="block text-center px-4 py-6 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-900 hover:bg-gray-50 transition-colors">
+                <div class="text-3xl mb-2">🏢</div>
+                <div class="font-semibold text-gray-900">Company</div>
+                <div class="text-xs text-gray-500 mt-1">List bikes and earn</div>
             </a>
         </div>
 
