@@ -60,4 +60,24 @@ class User extends Authenticatable
     {
         return $this->hasOne(CustomerProfile::class);
     }
+
+    public function dashboardRoute(): string
+    {
+        return match (true) {
+            $this->isAdmin() => '/admin',
+            $this->isCompany() => route('company.dashboard'),
+            $this->isCustomer() => route('customer.dashboard'),
+            default => '/',
+        };
+    }
+
+    public function bookingsRoute(): string
+    {
+        return match (true) {
+            $this->isAdmin() => '/admin',
+            $this->isCompany() => route('company.bookings.index'),
+            $this->isCustomer() => route('customer.bookings.index'),
+            default => '/',
+        };
+    }
 }

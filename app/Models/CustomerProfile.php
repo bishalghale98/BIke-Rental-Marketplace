@@ -35,6 +35,16 @@ class CustomerProfile extends Model
 
     public function verification()
     {
-        return $this->hasOne(CustomerVerification::class);
+        return $this->hasOne(CustomerVerification::class, 'user_id', 'user_id');
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class, 'customer_id');
+    }
+
+    public function extensionRequests()
+    {
+        return $this->hasMany(ExtensionRequest::class, 'customer_id');
     }
 }

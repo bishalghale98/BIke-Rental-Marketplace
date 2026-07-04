@@ -32,14 +32,16 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
+        $request->session()->forget('url.intended');
+
         if ($user->isAdmin()) {
-            return redirect()->intended('/admin');
+            return redirect('/admin');
         }
 
         if ($user->isCompany()) {
-            return redirect()->intended(route('company.dashboard', absolute: false));
+            return redirect()->route('company.dashboard');
         }
 
-        return redirect()->intended(route('customer.dashboard', absolute: false));
+        return redirect()->route('customer.dashboard');
     }
 }

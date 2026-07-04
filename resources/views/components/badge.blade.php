@@ -2,12 +2,12 @@
 
 @php
 $variantClasses = [
-    'gray' => 'bg-gray-100 text-gray-700',
-    'green' => 'bg-green-100 text-green-700',
-    'red' => 'bg-red-100 text-red-700',
-    'yellow' => 'bg-yellow-100 text-yellow-700',
-    'blue' => 'bg-blue-100 text-blue-700',
-    'purple' => 'bg-purple-100 text-purple-700',
+    'gray' => 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
+    'green' => 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-500',
+    'red' => 'bg-danger-50 text-danger-700 dark:bg-danger-500/10 dark:text-danger-500',
+    'yellow' => 'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-500',
+    'blue' => 'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-500',
+    'purple' => 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-500',
 ];
 @endphp
 

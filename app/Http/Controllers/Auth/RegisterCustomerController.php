@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
+use App\Models\CustomerProfile;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +37,11 @@ class RegisterCustomerController extends Controller
         ]);
 
         $user->assignRole(RoleEnum::Customer);
+
+        CustomerProfile::create([
+            'user_id' => $user->id,
+            'full_name' => $request->name,
+        ]);
 
         event(new Registered($user));
 
