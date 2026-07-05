@@ -8,6 +8,10 @@ use App\Models\Booking;
 use App\Notifications\BookingCancelledNotification;
 use App\Notifications\BookingCompletedNotification;
 use App\Notifications\BookingConfirmedNotification;
+use App\Services\CommissionService;
+use App\Services\PaymentService;
+use App\Services\RefundService;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +19,13 @@ use Illuminate\View\View;
 
 class BookingController extends Controller
 {
+    public function __construct(
+        private CommissionService $commissionService,
+        private PaymentService $paymentService,
+        private RefundService $refundService,
+        private WalletService $walletService,
+    ) {}
+
     public function index(): View
     {
         $company = Auth::user()->company;
@@ -34,7 +45,7 @@ class BookingController extends Controller
 
         abort_if($booking->bike->company_id !== $company->id, 403);
 
-        $booking->load('bike.category', 'bike.images', 'customer.user');
+        $booking->load('bike.category', 'bike.images', 'customer.user', 'payments');
 
         return view('company.bookings.show', compact('booking'));
     }
@@ -46,16 +57,16 @@ class BookingController extends Controller
         abort_if($booking->bike->company_id !== $company->id, 403);
 
         $request->validate([
-            'status' => ['required', 'string', 'in:confirmed,ongoing,completed,cancelled'],
+            'status' => ['required', 'string', 'in:confirmed,picked_up,completed,cancelled'],
         ]);
 
         $newStatus = $request->status;
         $currentStatus = $booking->status->value;
 
         $allowed = match ($currentStatus) {
-            'pending' => in_array($newStatus, ['confirmed', 'cancelled']),
-            'confirmed' => in_array($newStatus, ['ongoing', 'cancelled']),
-            'ongoing' => $newStatus === 'completed',
+            'deposit_paid' => in_array($newStatus, ['confirmed', 'cancelled']),
+            'confirmed' => in_array($newStatus, ['picked_up', 'cancelled']),
+            'picked_up' => $newStatus === 'completed',
             default => false,
         };
 
@@ -65,17 +76,33 @@ class BookingController extends Controller
 
         $data = ['status' => BookingStatusEnum::from($newStatus)];
 
+        if ($newStatus === 'confirmed') {
+            $this->commissionService->snapshotOnConfirm($booking);
+            $data = ['status' => BookingStatusEnum::Confirmed];
+        }
+
         if ($newStatus === 'cancelled') {
             $data['cancellation_reason'] = $request->cancellation_reason ?? 'Cancelled by company';
             $data['cancelled_by'] = 'company';
             $data['cancelled_at'] = now();
+            $data['refund_amount'] = $this->refundService->calculateRefundForCancellation($booking, 'company');
 
-            $hoursBeforeStart = now()->diffInHours($booking->start_date, false);
-            $data['refund_amount'] = match (true) {
-                $hoursBeforeStart >= 24 => $booking->total_amount,
-                $hoursBeforeStart >= 0 => $booking->total_amount * 0.5,
-                default => 0,
-            };
+            $depositPayment = $booking->payments()
+                ->where('type', 'deposit')
+                ->where('status', 'completed')
+                ->first();
+
+            if ($depositPayment && $data['refund_amount'] > 0) {
+                try {
+                    $this->paymentService->refund($depositPayment);
+                    $data['status'] = BookingStatusEnum::Refunded;
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning('Refund failed, manual processing needed.', [
+                        'payment_id' => $depositPayment->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         if ($newStatus === 'completed') {
@@ -86,6 +113,15 @@ class BookingController extends Controller
                 $lateFee = min($hoursLate * $hourlyRate, $booking->daily_price * 3);
                 $data['late_fee'] = round($lateFee, 2);
             }
+
+            $company = Auth::user()->company;
+            $this->walletService->credit(
+                $company,
+                $booking->company_earnings,
+                'booking_credit',
+                $booking,
+                "Earnings from booking {$booking->booking_number}"
+            );
         }
 
         $booking->update($data);
@@ -101,7 +137,7 @@ class BookingController extends Controller
 
         $message = 'Booking status updated.';
         if ($newStatus === 'completed' && $booking->late_fee) {
-            $message .= ' Late fee incurred: $' . number_format($booking->late_fee, 2) . '.';
+            $message .= ' Late fee incurred: NPR ' . number_format($booking->late_fee, 2) . '.';
         }
 
         return redirect()->route('company.bookings.show', $booking)

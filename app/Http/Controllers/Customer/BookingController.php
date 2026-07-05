@@ -9,6 +9,9 @@ use App\Models\Booking;
 use App\Models\CustomerProfile;
 use App\Notifications\BookingCancelledNotification;
 use App\Notifications\BookingCreatedNotification;
+use App\Services\BookingPricingService;
+use App\Services\PaymentService;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +19,12 @@ use Illuminate\View\View;
 
 class BookingController extends Controller
 {
+    public function __construct(
+        private BookingPricingService $pricingService,
+        private PaymentService $paymentService,
+        private RefundService $refundService,
+    ) {}
+
     private function getCustomer(): ?CustomerProfile
     {
         return Auth::user()->customerProfile;
@@ -59,7 +68,11 @@ class BookingController extends Controller
         $end = $request->date('end_date');
 
         $overlap = Booking::where('bike_id', $bike->id)
-            ->whereIn('status', [BookingStatusEnum::Confirmed->value, BookingStatusEnum::Ongoing->value])
+            ->whereIn('status', [
+                BookingStatusEnum::DepositPaid->value,
+                BookingStatusEnum::Confirmed->value,
+                BookingStatusEnum::PickedUp->value,
+            ])
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('start_date', [$start, $end])
                   ->orWhereBetween('end_date', [$start, $end])
@@ -74,37 +87,7 @@ class BookingController extends Controller
             return back()->withErrors(['dates' => 'The bike is not available for the selected dates.'])->withInput();
         }
 
-        $totalHours = $start->diffInHours($end);
-        $totalDays = $start->diffInDays($end) + 1;
-        $totalWeeks = floor($totalDays / 7);
-        $remainingDays = $totalDays % 7;
-
-        $hourlyPrice = $bike->hourly_price;
-        $dailyPrice = $bike->daily_price;
-        $weeklyPrice = $bike->weekly_price;
-
-        $subtotal = 0;
-        $totalHoursCalc = 0;
-        $totalDaysCalc = 0;
-        $totalWeeksCalc = 0;
-
-        if ($weeklyPrice && $totalWeeks > 0) {
-            $totalWeeksCalc = $totalWeeks;
-            $subtotal += $totalWeeks * $weeklyPrice;
-        }
-
-        if ($dailyPrice && $remainingDays > 0) {
-            $totalDaysCalc = $remainingDays;
-            $subtotal += $remainingDays * $dailyPrice;
-        } elseif ($dailyPrice && $totalWeeks === 0 && $totalHours < 24) {
-            $totalDaysCalc = 1;
-            $subtotal += $dailyPrice;
-        }
-
-        if ($hourlyPrice && $subtotal === 0 && $totalHours < 24) {
-            $totalHoursCalc = $totalHours;
-            $subtotal += $totalHours * $hourlyPrice;
-        }
+        $pricing = $this->pricingService->calculate($start, $end, $bike);
 
         $customer = $this->getCustomer();
 
@@ -120,21 +103,21 @@ class BookingController extends Controller
             'bike_id' => $bike->id,
             'start_date' => $start,
             'end_date' => $end,
-            'hourly_price' => $hourlyPrice,
-            'daily_price' => $dailyPrice,
-            'weekly_price' => $weeklyPrice,
-            'total_hours' => $totalHoursCalc,
-            'total_days' => $totalDaysCalc,
-            'total_weeks' => $totalWeeksCalc,
-            'subtotal' => $subtotal,
-            'total_amount' => $subtotal,
-            'status' => BookingStatusEnum::Pending,
+            'hourly_price' => $bike->hourly_price,
+            'daily_price' => $bike->daily_price,
+            'weekly_price' => $bike->weekly_price,
+            'total_hours' => $pricing['total_hours'],
+            'total_days' => $pricing['total_days'],
+            'total_weeks' => $pricing['total_weeks'],
+            'subtotal' => $pricing['subtotal'],
+            'total_amount' => $pricing['total_amount'],
+            'status' => BookingStatusEnum::PendingPayment,
         ]);
 
         $bike->company->user->notify(new BookingCreatedNotification($booking));
 
-        return redirect()->route('customer.bookings.show', $booking)
-            ->with('success', 'Booking created successfully.');
+        return redirect()->route('customer.payment.checkout', $booking)
+            ->with('success', 'Booking created. Please complete the deposit payment to confirm.');
     }
 
     public function show(Booking $booking): View|RedirectResponse
@@ -147,7 +130,7 @@ class BookingController extends Controller
 
         abort_if($booking->customer_id !== $customer->id, 403);
 
-        $booking->load('bike.category', 'bike.images', 'bike.company');
+        $booking->load('bike.category', 'bike.images', 'bike.company', 'payments');
 
         return view('customer.bookings.show', compact('booking'));
     }
@@ -162,19 +145,19 @@ class BookingController extends Controller
 
         abort_if($booking->customer_id !== $customer->id, 403);
 
-        if (!in_array($booking->status->value, ['pending', 'confirmed'])) {
+        $cancellableStatuses = [
+            BookingStatusEnum::PendingPayment->value,
+            BookingStatusEnum::DepositPaid->value,
+            BookingStatusEnum::Confirmed->value,
+        ];
+
+        if (!in_array($booking->status->value, $cancellableStatuses)) {
             return back()->with('error', 'This booking cannot be cancelled.');
         }
 
         $request->validate(['cancellation_reason' => ['nullable', 'string', 'max:1000']]);
 
-        $hoursBeforeStart = now()->diffInHours($booking->start_date, false);
-
-        $refundAmount = match (true) {
-            $hoursBeforeStart >= 24 => $booking->total_amount,
-            $hoursBeforeStart >= 0 => $booking->total_amount * 0.5,
-            default => 0,
-        };
+        $refundAmount = $this->refundService->calculateRefundForCancellation($booking, 'customer');
 
         $booking->update([
             'status' => BookingStatusEnum::Cancelled,
@@ -184,11 +167,28 @@ class BookingController extends Controller
             'refund_amount' => $refundAmount,
         ]);
 
+        $depositPayment = $booking->payments()
+            ->where('type', 'deposit')
+            ->where('status', 'completed')
+            ->first();
+
+        if ($depositPayment && $refundAmount > 0) {
+            try {
+                $this->paymentService->refund($depositPayment);
+                $booking->update(['status' => BookingStatusEnum::Refunded]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Refund failed, manual processing needed.', [
+                    'payment_id' => $depositPayment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $booking->bike->company->user->notify(new BookingCancelledNotification($booking, 'customer'));
 
         $message = 'Booking cancelled successfully.';
         if ($refundAmount > 0) {
-            $message .= ' Estimated refund: $' . number_format($refundAmount, 2) . '.';
+            $message .= ' NPR ' . number_format($refundAmount, 2) . ' will be refunded.';
         }
 
         return redirect()->route('customer.bookings.show', $booking)

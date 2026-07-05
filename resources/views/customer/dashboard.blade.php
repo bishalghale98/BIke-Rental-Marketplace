@@ -85,7 +85,7 @@
                                         <p class="font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ $booking->bike->name }}</p>
                                         <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{{ $booking->start_date->format('M d, g:i A') }} &mdash; {{ $booking->end_date->format('M d, g:i A') }}</p>
                                     </div>
-                                    <x-badge :variant="$booking->status->value === 'ongoing' ? 'blue' : 'yellow'">{{ ucfirst($booking->status->value) }}</x-badge>
+                                    <x-badge :variant="$booking->status->value === 'picked_up' ? 'blue' : 'yellow'">{{ ucfirst($booking->status->value) }}</x-badge>
                                 </div>
                             </a>
                         @endforeach

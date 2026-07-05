@@ -22,7 +22,7 @@ class DashboardController extends Controller
         $availableBikes = $company->bikes()->where('is_available', true)->where('status', 'active')->count();
 
         $activeBookings = Booking::whereIn('bike_id', $bikeIds)
-            ->where('status', BookingStatusEnum::Ongoing)
+            ->where('status', BookingStatusEnum::PickedUp)
             ->count();
 
         $totalRevenue = Booking::whereIn('bike_id', $bikeIds)

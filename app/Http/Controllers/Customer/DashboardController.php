@@ -39,16 +39,16 @@ class DashboardController extends Controller
             'isVerified' => true,
             'showOnboarding' => false,
             'upcomingCount' => Booking::where('customer_id', $customer->id)
-                ->whereIn('status', [BookingStatusEnum::Pending, BookingStatusEnum::Confirmed])
+                ->whereIn('status', [BookingStatusEnum::PendingPayment, BookingStatusEnum::DepositPaid, BookingStatusEnum::Confirmed])
                 ->count(),
             'activeCount' => Booking::where('customer_id', $customer->id)
-                ->where('status', BookingStatusEnum::Ongoing)
+                ->where('status', BookingStatusEnum::PickedUp)
                 ->count(),
             'completedCount' => Booking::where('customer_id', $customer->id)
                 ->where('status', BookingStatusEnum::Completed)
                 ->count(),
             'upcomingBookings' => Booking::where('customer_id', $customer->id)
-                ->whereIn('status', [BookingStatusEnum::Pending, BookingStatusEnum::Confirmed, BookingStatusEnum::Ongoing])
+                ->whereIn('status', [BookingStatusEnum::PendingPayment, BookingStatusEnum::DepositPaid, BookingStatusEnum::Confirmed, BookingStatusEnum::PickedUp])
                 ->with('bike.images', 'bike.category')
                 ->latest('start_date')
                 ->take(5)

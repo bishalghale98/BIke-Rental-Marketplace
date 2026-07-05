@@ -15,7 +15,26 @@
 
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div class="md:col-span-3 space-y-6">
-            <x-card header="<div class='flex items-center justify-between'><h3 class='text-lg font-medium text-gray-900'>Booking Details</h3><x-badge :variant='$booking->status->value === \"completed\" ? \"green\" : ($booking->status->value === \"cancelled\" ? \"gray\" : ($booking->status->value === \"ongoing\" ? \"blue\" : ($booking->status->value === \"confirmed\" ? \"yellow\" : \"gray\")))'>{{ ucfirst($booking->status->value) }}</x-badge></div>">
+            <x-card>
+                <x-slot:header>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-gray-900">Booking Details</h3>
+                        @php
+                            $badgeVariant = match($booking->status->value) {
+                                'completed' => 'green',
+                                'cancelled' => 'gray',
+                                'refunded' => 'gray',
+                                'picked_up' => 'blue',
+                                'confirmed' => 'yellow',
+                                'deposit_paid' => 'blue',
+                                'pending_payment' => 'yellow',
+                                'expired' => 'gray',
+                                default => 'gray',
+                            };
+                        @endphp
+                        <x-badge :variant="$badgeVariant">{{ ucfirst($booking->status->value) }}</x-badge>
+                    </div>
+                </x-slot:header>
                 <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <p class="text-gray-500">Booking Number</p>
@@ -84,9 +103,9 @@
                     <div class="space-y-3">
                         @php
                             $transitions = match ($booking->status->value) {
-                                'pending' => ['confirmed' => 'Confirm', 'cancelled' => 'Cancel'],
-                                'confirmed' => ['ongoing' => 'Mark as Ongoing', 'cancelled' => 'Cancel'],
-                                'ongoing' => ['completed' => 'Mark as Completed'],
+                                'deposit_paid' => ['confirmed' => 'Confirm', 'cancelled' => 'Cancel'],
+                                'confirmed' => ['picked_up' => 'Mark as Picked Up', 'cancelled' => 'Cancel'],
+                                'picked_up' => ['completed' => 'Mark as Completed'],
                                 default => [],
                             };
                         @endphp
@@ -118,6 +137,20 @@
                     @endif
                     <hr>
                     <div class="flex justify-between text-base"><span class="font-semibold text-gray-900">Total</span><span class="font-bold text-gray-900">NPR {{ number_format($booking->total_amount, 2) }}</span></div>
+                    @if ($booking->deposit_paid_at)
+                        <div class="flex justify-between text-green-600"><span>Deposit Paid</span><span>NPR {{ number_format($booking->deposit_amount, 2) }}</span></div>
+                    @endif
+                    @if ($booking->remaining_paid_at)
+                        <div class="flex justify-between text-green-600"><span>Remaining Paid</span><span>NPR {{ number_format($booking->remaining_amount, 2) }}</span></div>
+                    @endif
+                    @if ($booking->late_fee)
+                        <div class="flex justify-between text-red-600"><span>Late Fee</span><span>NPR {{ number_format($booking->late_fee, 2) }}</span></div>
+                    @endif
+                    @if ($booking->commission_amount)
+                        <hr>
+                        <div class="flex justify-between"><span class="text-gray-500">Commission ({{ $booking->commission_percent }}%)</span><span class="font-medium">NPR {{ number_format($booking->commission_amount, 2) }}</span></div>
+                        <div class="flex justify-between font-medium"><span>Your Earnings</span><span class="text-green-600">NPR {{ number_format($booking->company_earnings, 2) }}</span></div>
+                    @endif
                 </div>
             </x-card>
         </div>

@@ -10,7 +10,11 @@ use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\ReportController as CompanyReportController;
 use App\Http\Controllers\Company\ReviewController as CompanyReviewController;
 use App\Http\Controllers\Company\VerificationController as CompanyVerificationController;
+use App\Http\Controllers\Admin\FinancialController;
+use App\Http\Controllers\Admin\PayoutController as AdminPayoutController;
+use App\Http\Controllers\Company\PayoutController as CompanyPayoutController;
 use App\Http\Controllers\Customer\BookingController as CustomerBookingController;
+use App\Http\Controllers\Customer\PaymentController as CustomerPaymentController;
 use App\Http\Controllers\Customer\ProfileController as CustomerProfileController;
 use App\Http\Controllers\Customer\ReviewController as CustomerReviewController;
 use App\Http\Controllers\Customer\VerificationController as CustomerVerificationController;
@@ -73,6 +77,16 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/account/deactivate', [AccountDeletionController::class, 'deactivate'])->name('account.deactivate');
 
+    Route::prefix('admin')->name('admin.')->middleware('role:Admin')->group(function () {
+        Route::get('/payouts', [AdminPayoutController::class, 'index'])->name('payouts.index');
+        Route::get('/payouts/{payout}', [AdminPayoutController::class, 'show'])->name('payouts.show');
+        Route::post('/payouts/{payout}/approve', [AdminPayoutController::class, 'approve'])->name('payouts.approve');
+        Route::post('/payouts/{payout}/mark-paid', [AdminPayoutController::class, 'markPaid'])->name('payouts.mark-paid');
+        Route::post('/payouts/{payout}/mark-failed', [AdminPayoutController::class, 'markFailed'])->name('payouts.mark-failed');
+
+        Route::get('/financial', [FinancialController::class, 'dashboard'])->name('financial.dashboard');
+    });
+
     Route::prefix('customer')->name('customer.')->middleware('role:Customer')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Customer\DashboardController::class, 'index'])->name('dashboard');
 
@@ -81,6 +95,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/bookings/{bike}', [CustomerBookingController::class, 'store'])->name('bookings.store');
         Route::get('/bookings/{booking}', [CustomerBookingController::class, 'show'])->name('bookings.show');
         Route::post('/bookings/{booking}/cancel', [CustomerBookingController::class, 'cancel'])->name('bookings.cancel');
+
+        Route::get('/checkout/{booking}', [CustomerPaymentController::class, 'checkout'])->name('payment.checkout');
+        Route::post('/pay/{booking}/{gateway}', [CustomerPaymentController::class, 'pay'])->name('payment.pay');
+        Route::get('/payment/{gateway}/callback', [CustomerPaymentController::class, 'callback'])->name('payment.callback');
+        Route::get('/payment/success/{booking}', [CustomerPaymentController::class, 'success'])->name('payment.success');
+        Route::get('/payment/failure/{booking}', [CustomerPaymentController::class, 'failure'])->name('payment.failure');
+        Route::post('/pay/remaining/{booking}/{gateway}', [CustomerPaymentController::class, 'payRemaining'])->name('payment.pay-remaining');
 
         Route::get('/reviews', [CustomerReviewController::class, 'index'])->name('reviews.index');
         Route::get('/reviews/create/{booking}', [CustomerReviewController::class, 'create'])->name('reviews.create');
@@ -128,6 +149,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/analytics', function () {
             return view('company.analytics');
         })->name('analytics');
+
+        Route::get('/payouts', [CompanyPayoutController::class, 'index'])->name('payouts.index');
+        Route::post('/payouts/request', [CompanyPayoutController::class, 'request'])->name('payouts.request');
+        Route::get('/payouts/history', [CompanyPayoutController::class, 'history'])->name('payouts.history');
 
         Route::get('/extensions', [\App\Http\Controllers\Company\ExtensionRequestController::class, 'index'])->name('extensions.index');
         Route::post('/extensions/{extensionRequest}/approve', [\App\Http\Controllers\Company\ExtensionRequestController::class, 'approve'])->name('extensions.approve');

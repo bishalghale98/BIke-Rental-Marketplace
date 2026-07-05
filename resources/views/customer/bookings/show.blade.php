@@ -15,7 +15,26 @@
 
     <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div class="md:col-span-3 space-y-6">
-            <x-card header="<div class='flex items-center justify-between'><h3 class='text-lg font-medium text-gray-900'>Booking Details</h3><x-badge :variant='$booking->status->value === \"completed\" ? \"green\" : ($booking->status->value === \"cancelled\" ? \"gray\" : ($booking->status->value === \"ongoing\" ? \"blue\" : ($booking->status->value === \"confirmed\" ? \"yellow\" : \"gray\")))'>{{ ucfirst($booking->status->value) }}</x-badge></div>">
+            <x-card>
+                <x-slot:header>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-gray-900">Booking Details</h3>
+                        @php
+                            $badgeVariant = match($booking->status->value) {
+                                'completed' => 'green',
+                                'cancelled' => 'gray',
+                                'refunded' => 'gray',
+                                'picked_up' => 'blue',
+                                'confirmed' => 'yellow',
+                                'deposit_paid' => 'blue',
+                                'pending_payment' => 'yellow',
+                                'expired' => 'gray',
+                                default => 'gray',
+                            };
+                        @endphp
+                        <x-badge :variant="$badgeVariant">{{ ucfirst($booking->status->value) }}</x-badge>
+                    </div>
+                </x-slot:header>
                 <div class="space-y-4 text-sm">
                     <div>
                         <p class="text-gray-500">Booking Number</p>
@@ -98,7 +117,66 @@
                 </x-card>
             @endif
 
-            @if (in_array($booking->status->value, ['pending', 'confirmed']))
+            @if ($booking->status->value === 'pending_payment')
+                <div class="border-2 border-yellow-200 bg-yellow-50 rounded-xl p-5 space-y-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <h3 class="text-base font-semibold text-yellow-800">Payment Required</h3>
+                    </div>
+                    <p class="text-sm text-yellow-700">Pay the deposit to confirm your booking. This booking will expire if not paid within {{ config('marketplace.payment_timeout_minutes') }} minutes.</p>
+                    <div class="bg-white rounded-lg p-3 space-y-2 text-sm border border-yellow-100">
+                        <div class="flex justify-between"><span class="text-gray-500">Deposit ({{ config('marketplace.deposit_percentage') }}%)</span><span class="font-bold text-yellow-700">NPR {{ number_format($booking->deposit_amount, 2) }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Pay at Pickup</span><span class="font-medium">NPR {{ number_format($booking->remaining_amount, 2) }}</span></div>
+                    </div>
+                    <div class="space-y-2">
+                        <form method="POST" action="{{ route('customer.payment.pay', ['booking' => $booking, 'gateway' => 'khalti']) }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-purple-200 hover:border-purple-400 rounded-xl text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+                                <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#6B21A8"/><text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">K</text></svg>
+                                Pay with Khalti
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('customer.payment.pay', ['booking' => $booking, 'gateway' => 'esewa']) }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-green-200 hover:border-green-400 rounded-xl text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-colors">
+                                <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#16A34A"/><text x="16" y="20" text-anchor="middle" fill="white" font-size="10" font-weight="bold">eS</text></svg>
+                                Pay with eSewa
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
+            @if ($booking->status->value === 'confirmed')
+                <div class="border-2 border-blue-200 bg-blue-50 rounded-xl p-5 space-y-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <h3 class="text-base font-semibold text-blue-800">Pay Remaining Balance</h3>
+                    </div>
+                    <p class="text-sm text-blue-700">Pay the remaining amount before pickup to avoid any issues.</p>
+                    <div class="bg-white rounded-lg p-3 text-sm border border-blue-100">
+                        <div class="flex justify-between"><span class="text-gray-500">Remaining Amount</span><span class="font-bold text-blue-700">NPR {{ number_format($booking->remaining_amount, 2) }}</span></div>
+                    </div>
+                    <div class="space-y-2">
+                        <form method="POST" action="{{ route('customer.payment.pay-remaining', ['booking' => $booking, 'gateway' => 'khalti']) }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-purple-200 hover:border-purple-400 rounded-xl text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+                                <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#6B21A8"/><text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">K</text></svg>
+                                Pay with Khalti
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('customer.payment.pay-remaining', ['booking' => $booking, 'gateway' => 'esewa']) }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-green-200 hover:border-green-400 rounded-xl text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-colors">
+                                <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#16A34A"/><text x="16" y="20" text-anchor="middle" fill="white" font-size="10" font-weight="bold">eS</text></svg>
+                                Pay with eSewa
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
+            @if (in_array($booking->status->value, ['pending_payment', 'deposit_paid', 'confirmed']))
                 <x-card>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Cancel Booking</h3>
                     <form method="POST" action="{{ route('customer.bookings.cancel', $booking) }}">
@@ -125,6 +203,15 @@
                     @endif
                     <hr>
                     <div class="flex justify-between text-base"><span class="font-semibold text-gray-900">Total</span><span class="font-bold text-gray-900">NPR {{ number_format($booking->total_amount, 2) }}</span></div>
+                    @if ($booking->deposit_paid_at)
+                        <div class="flex justify-between text-green-600"><span>Deposit Paid</span><span>NPR {{ number_format($booking->deposit_amount, 2) }}</span></div>
+                    @endif
+                    @if ($booking->remaining_paid_at)
+                        <div class="flex justify-between text-green-600"><span>Remaining Paid</span><span>NPR {{ number_format($booking->remaining_amount, 2) }}</span></div>
+                    @endif
+                    @if ($booking->late_fee)
+                        <div class="flex justify-between text-red-600"><span>Late Fee</span><span>NPR {{ number_format($booking->late_fee, 2) }}</span></div>
+                    @endif
                 </div>
             </x-card>
         </div>

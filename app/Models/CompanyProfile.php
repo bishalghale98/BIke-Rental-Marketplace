@@ -24,6 +24,7 @@ class CompanyProfile extends Model
         'social_links',
         'verification_status',
         'rating',
+        'commission_percent',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class CompanyProfile extends Model
             'social_links' => 'array',
             'opening_hours' => 'array',
             'rating' => 'decimal:2',
+            'commission_percent' => 'decimal:2',
         ];
     }
 
@@ -43,5 +45,22 @@ class CompanyProfile extends Model
     public function bikes()
     {
         return $this->hasMany(Bike::class, 'company_id');
+    }
+
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class, 'company_id');
+    }
+
+    public function payouts()
+    {
+        return $this->hasMany(Payout::class, 'company_id');
+    }
+
+    public function getBalanceAttribute()
+    {
+        $credit = $this->walletTransactions()->where('direction', 'credit')->sum('amount');
+        $debit = $this->walletTransactions()->where('direction', 'debit')->sum('amount');
+        return round($credit - $debit, 2);
     }
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c64140ad380fa17ab5172ee2a412bc0b",
+    "content-hash": "aabba35cb69c9752de404b9f55e6034b",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -3477,6 +3477,58 @@
                 }
             ],
             "time": "2026-01-02T08:56:05+00:00"
+        },
+        {
+            "name": "neputertech/khalti",
+            "version": "v1.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/neputertech/khalti.git",
+                "reference": "4c654f5d67408660969a2a943861a05cb6b84209"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/neputertech/khalti/zipball/4c654f5d67408660969a2a943861a05cb6b84209",
+                "reference": "4c654f5d67408660969a2a943861a05cb6b84209",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.4.0|^8.0"
+            },
+            "require-dev": {
+                "illuminate/console": "^7|^8|^9",
+                "illuminate/support": "^7|^8|^9",
+                "illuminate/validation": "^9.52"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Neputer\\Laravel\\KhaltiServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Neputer\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "735l4",
+                    "email": "pratibimbakhadka@gmail.com"
+                }
+            ],
+            "description": "Php wrapper for khalti integration",
+            "support": {
+                "issues": "https://github.com/neputertech/khalti/issues",
+                "source": "https://github.com/neputertech/khalti/tree/v1.1.2"
+            },
+            "time": "2025-06-18T09:44:32+00:00"
         },
         {
             "name": "nesbot/carbon",

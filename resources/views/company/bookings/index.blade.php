@@ -45,7 +45,7 @@
                         </td>
                         <td class="py-3 font-medium text-gray-900">NPR {{ number_format($booking->total_amount, 2) }}</td>
                         <td class="py-3">
-                            <x-badge :variant="$booking->status->value === 'completed' ? 'green' : ($booking->status->value === 'cancelled' ? 'gray' : ($booking->status->value === 'ongoing' ? 'blue' : ($booking->status->value === 'confirmed' ? 'yellow' : 'gray')))">{{ ucfirst($booking->status->value) }}</x-badge>
+                            <x-badge :variant="match($booking->status->value) { 'completed' => 'green', 'cancelled', 'refunded', 'expired' => 'gray', 'picked_up' => 'blue', 'confirmed', 'pending_payment', 'deposit_paid' => 'yellow', default => 'gray' }">{{ ucfirst($booking->status->value) }}</x-badge>
                         </td>
                     </tr>
                 @endforeach
