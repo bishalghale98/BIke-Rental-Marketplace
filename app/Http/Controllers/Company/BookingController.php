@@ -11,7 +11,6 @@ use App\Notifications\BookingConfirmedNotification;
 use App\Services\CommissionService;
 use App\Services\PaymentService;
 use App\Services\RefundService;
-use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +22,6 @@ class BookingController extends Controller
         private CommissionService $commissionService,
         private PaymentService $paymentService,
         private RefundService $refundService,
-        private WalletService $walletService,
     ) {}
 
     public function index(): View
@@ -113,15 +111,6 @@ class BookingController extends Controller
                 $lateFee = min($hoursLate * $hourlyRate, $booking->daily_price * 3);
                 $data['late_fee'] = round($lateFee, 2);
             }
-
-            $company = Auth::user()->company;
-            $this->walletService->credit(
-                $company,
-                $booking->company_earnings,
-                'booking_credit',
-                $booking,
-                "Earnings from booking {$booking->booking_number}"
-            );
         }
 
         $booking->update($data);

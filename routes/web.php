@@ -78,12 +78,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/deactivate', [AccountDeletionController::class, 'deactivate'])->name('account.deactivate');
 
     Route::prefix('admin')->name('admin.')->middleware('role:Admin')->group(function () {
-        Route::get('/payouts', [AdminPayoutController::class, 'index'])->name('payouts.index');
-        Route::get('/payouts/{payout}', [AdminPayoutController::class, 'show'])->name('payouts.show');
-        Route::post('/payouts/{payout}/approve', [AdminPayoutController::class, 'approve'])->name('payouts.approve');
-        Route::post('/payouts/{payout}/mark-paid', [AdminPayoutController::class, 'markPaid'])->name('payouts.mark-paid');
-        Route::post('/payouts/{payout}/mark-failed', [AdminPayoutController::class, 'markFailed'])->name('payouts.mark-failed');
-
         Route::get('/financial', [FinancialController::class, 'dashboard'])->name('financial.dashboard');
     });
 
@@ -152,7 +146,13 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/payouts', [CompanyPayoutController::class, 'index'])->name('payouts.index');
         Route::post('/payouts/request', [CompanyPayoutController::class, 'request'])->name('payouts.request');
+        Route::get('/payouts/invoice/{payout}', [CompanyPayoutController::class, 'invoice'])->name('payouts.invoice');
         Route::get('/payouts/history', [CompanyPayoutController::class, 'history'])->name('payouts.history');
+
+        Route::get('/bank-details', [\App\Http\Controllers\Company\BankDetailController::class, 'index'])->name('bank-details.index');
+        Route::post('/bank-details', [\App\Http\Controllers\Company\BankDetailController::class, 'store'])->name('bank-details.store');
+        Route::put('/bank-details/{bankDetail}', [\App\Http\Controllers\Company\BankDetailController::class, 'update'])->name('bank-details.update');
+        Route::delete('/bank-details/{bankDetail}', [\App\Http\Controllers\Company\BankDetailController::class, 'destroy'])->name('bank-details.destroy');
 
         Route::get('/extensions', [\App\Http\Controllers\Company\ExtensionRequestController::class, 'index'])->name('extensions.index');
         Route::post('/extensions/{extensionRequest}/approve', [\App\Http\Controllers\Company\ExtensionRequestController::class, 'approve'])->name('extensions.approve');

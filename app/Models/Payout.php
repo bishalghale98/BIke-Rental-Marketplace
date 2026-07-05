@@ -14,6 +14,7 @@ class Payout extends Model
         'notes',
         'processed_by',
         'paid_at',
+        'payment_proof',
     ];
 
     protected function casts(): array

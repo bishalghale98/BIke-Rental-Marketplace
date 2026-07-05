@@ -57,6 +57,16 @@ class CompanyProfile extends Model
         return $this->hasMany(Payout::class, 'company_id');
     }
 
+    public function bankDetails()
+    {
+        return $this->hasMany(BankDetail::class, 'company_id');
+    }
+
+    public function defaultBankDetail()
+    {
+        return $this->hasOne(BankDetail::class, 'company_id')->where('is_default', true);
+    }
+
     public function getBalanceAttribute()
     {
         $credit = $this->walletTransactions()->where('direction', 'credit')->sum('amount');

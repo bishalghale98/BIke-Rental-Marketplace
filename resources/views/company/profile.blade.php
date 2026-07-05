@@ -31,10 +31,20 @@
             <div class="space-y-4">
                 <div class="space-y-1">
                     <label class="block text-sm font-medium text-gray-700">Logo</label>
+                    @if ($company->logo)
+                        <div class="mb-2">
+                            <img src="{{ asset('storage/' . $company->logo) }}" alt="Logo" class="h-20 w-auto rounded-lg border border-gray-200 object-contain">
+                        </div>
+                    @endif
                     <input type="file" name="logo" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                 </div>
                 <div class="space-y-1">
                     <label class="block text-sm font-medium text-gray-700">Cover Image</label>
+                    @if ($company->cover_image)
+                        <div class="mb-2">
+                            <img src="{{ asset('storage/' . $company->cover_image) }}" alt="Cover Image" class="h-32 w-full max-w-md rounded-lg border border-gray-200 object-cover">
+                        </div>
+                    @endif
                     <input type="file" name="cover_image" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                 </div>
             </div>

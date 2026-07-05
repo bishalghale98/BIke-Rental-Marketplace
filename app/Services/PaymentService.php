@@ -284,6 +284,7 @@ class PaymentService
     private function handlePaymentSuccess(Payment $payment): void
     {
         $booking = $payment->booking;
+        $company = $booking->bike->company;
 
         if ($payment->type === 'deposit') {
             $booking->update(['deposit_paid_at' => now()]);
@@ -294,18 +295,37 @@ class PaymentService
 
             $booking->update(['status' => \App\Enums\BookingStatusEnum::Confirmed]);
 
-            $company = $booking->bike->company;
+            $booking->refresh();
+
             $this->walletService->credit(
                 $company,
                 $payment->amount,
                 'deposit_credit',
                 $booking,
-                "Deposit payment for booking {$booking->booking_number}"
+                "Deposit payment for booking {$booking->booking_number}",
             );
+
+            if ((float) $booking->commission_amount > 0) {
+                $this->walletService->debit(
+                    $company,
+                    (float) $booking->commission_amount,
+                    'commission_debit',
+                    $booking,
+                    "Commission deducted for booking {$booking->booking_number}",
+                );
+            }
         }
 
         if ($payment->type === 'remaining') {
             $booking->update(['remaining_paid_at' => now()]);
+
+            $this->walletService->credit(
+                $company,
+                $payment->amount,
+                'remaining_credit',
+                $booking,
+                "Remaining payment for booking {$booking->booking_number}",
+            );
         }
     }
 }

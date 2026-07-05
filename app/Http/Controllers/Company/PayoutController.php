@@ -23,8 +23,9 @@ class PayoutController extends Controller
         $company = Auth::user()->company;
         $balance = $this->walletService->balance($company);
         $payouts = Payout::where('company_id', $company->id)->latest()->paginate(15);
+        $bankDetails = $company->bankDetails()->latest()->get();
 
-        return view('company.payouts.index', compact('company', 'balance', 'payouts'));
+        return view('company.payouts.index', compact('company', 'balance', 'payouts', 'bankDetails'));
     }
 
     public function request(Request $request): RedirectResponse
@@ -33,18 +34,24 @@ class PayoutController extends Controller
 
         $request->validate([
             'amount' => ['required', 'numeric', 'min:1', 'max:' . $company->balance],
-            'bank_name' => ['required', 'string', 'max:255'],
-            'bank_account_name' => ['required', 'string', 'max:255'],
-            'bank_account_number' => ['required', 'string', 'max:50'],
-            'bank_branch' => ['nullable', 'string', 'max:255'],
+            'bank_detail_id' => ['required', 'exists:bank_details,id'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $bankDetail = $company->bankDetails()->findOrFail($request->bank_detail_id);
+
+        $bankDetails = [
+            'bank_name' => $bankDetail->bank_name,
+            'account_name' => $bankDetail->account_name,
+            'account_number' => $bankDetail->account_number,
+            'branch' => $bankDetail->branch,
+        ];
 
         try {
             $this->payoutService->request(
                 $company,
                 $request->amount,
-                $request->only(['bank_name', 'bank_account_name', 'bank_account_number', 'bank_branch']),
+                $bankDetails,
                 $request->notes
             );
 
@@ -53,6 +60,15 @@ class PayoutController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function invoice(Payout $payout): View
+    {
+        $company = Auth::user()->company;
+
+        abort_if($payout->company_id !== $company->id, 403);
+
+        return view('company.payouts.invoice', compact('company', 'payout'));
     }
 
     public function history(): View

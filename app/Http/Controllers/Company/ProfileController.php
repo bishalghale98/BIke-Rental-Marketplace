@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -35,10 +36,16 @@ class ProfileController extends Controller
         $data = $request->except(['logo', 'cover_image']);
 
         if ($request->hasFile('logo')) {
+            if ($company->logo) {
+                Storage::disk('public')->delete($company->logo);
+            }
             $data['logo'] = $request->file('logo')->store('companies/logos', 'public');
         }
 
         if ($request->hasFile('cover_image')) {
+            if ($company->cover_image) {
+                Storage::disk('public')->delete($company->cover_image);
+            }
             $data['cover_image'] = $request->file('cover_image')->store('companies/covers', 'public');
         }
 

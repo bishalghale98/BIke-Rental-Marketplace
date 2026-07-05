@@ -48,7 +48,8 @@ class WalletService
     public function transactions(CompanyProfile $company)
     {
         return WalletTransaction::where('company_id', $company->id)
-            ->latest()
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(20);
     }
 }

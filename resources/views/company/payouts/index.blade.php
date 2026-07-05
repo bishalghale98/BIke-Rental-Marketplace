@@ -29,7 +29,7 @@
     </div>
 
     @if ($balance > 0)
-        <x-card class="mt-6" header="<h3 class='text-lg font-medium text-gray-900'>Request Payout</h3>">
+        <x-card class="mt-6" header="<div class='flex items-center justify-between'><h3 class='text-lg font-medium text-gray-900'>Request Payout</h3><a href='{{ route('company.bank-details.index') }}' class='text-sm font-medium text-primary-600 hover:text-primary-700'>Manage Bank Accounts</a></div>">
             <form method="POST" action="{{ route('company.payouts.request') }}">
                 @csrf
                 <div class="space-y-4">
@@ -39,29 +39,31 @@
                             class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900">
                         <p class="mt-1 text-xs text-gray-400">Max: NPR {{ number_format($balance, 2) }}</p>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Bank Name</label>
-                            <input type="text" name="bank_name" required class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Account Name</label>
-                            <input type="text" name="bank_account_name" required class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Account Number</label>
-                            <input type="text" name="bank_account_number" required class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Branch (optional)</label>
-                            <input type="text" name="bank_branch" class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900">
-                        </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Bank Account</label>
+                        @if ($bankDetails->count())
+                            <select name="bank_detail_id" required
+                                class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900">
+                                <option value="">Select a bank account</option>
+                                @foreach ($bankDetails as $detail)
+                                    <option value="{{ $detail->id }}" {{ $detail->is_default ? 'selected' : '' }}>
+                                        {{ $detail->bank_name }} - {{ $detail->account_name }} ({{ $detail->account_number }}){{ $detail->is_default ? ' [Default]' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @else
+                            <div class="mt-1 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                                No bank accounts saved.
+                                <a href="{{ route('company.bank-details.index') }}" class="font-medium underline">Add one now</a>.
+                            </div>
+                        @endif
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Notes (optional)</label>
                         <textarea name="notes" rows="2" class="mt-1 block w-full rounded-lg border border-gray-300 text-sm px-3 py-2 focus:border-gray-900 focus:ring-1 focus:ring-gray-900"></textarea>
                     </div>
-                    <button type="submit" class="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors">
+                    <button type="submit" {{ $bankDetails->count() ? '' : 'disabled' }}
+                        class="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors {{ $bankDetails->count() ? '' : 'opacity-50 cursor-not-allowed' }}">
                         Submit Payout Request
                     </button>
                 </div>
@@ -78,7 +80,7 @@
                             <p class="text-sm font-medium text-gray-900">NPR {{ number_format($payout->amount, 2) }}</p>
                             <p class="text-xs text-gray-500">{{ $payout->created_at->format('M d, Y') }}</p>
                         </div>
-                        <div class="text-right">
+                        <div class="flex items-center gap-2">
                             <span @class([
                                 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
                                 'bg-yellow-50 text-yellow-700' => $payout->status === 'pending',
@@ -88,6 +90,9 @@
                             ])>
                                 {{ ucfirst($payout->status) }}
                             </span>
+                            @if (in_array($payout->status, ['paid', 'processing', 'failed']))
+                                <a href="{{ route('company.payouts.invoice', $payout) }}" class="text-sm font-medium text-primary-600 hover:text-primary-700">View</a>
+                            @endif
                         </div>
                     </div>
                 @endforeach
