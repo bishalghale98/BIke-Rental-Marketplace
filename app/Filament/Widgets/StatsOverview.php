@@ -35,7 +35,7 @@ class StatsOverview extends BaseWidget
             Stat::make('Commission Earned', 'NPR ' . number_format(Booking::whereIn('status', ['completed', 'confirmed', 'picked_up'])->sum('commission_amount'), 2))
                 ->description('Total platform commission'),
 
-            Stat::make('Pending Verifications', CompanyVerification::where('verification_status', 'pending')->count())
+            Stat::make('Pending Verifications', CompanyVerification::where('status', 'pending')->count())
                 ->description('Awaiting approval'),
 
             Stat::make('Pending Payouts', 'NPR ' . number_format(Payout::where('status', 'pending')->sum('amount'), 2))
