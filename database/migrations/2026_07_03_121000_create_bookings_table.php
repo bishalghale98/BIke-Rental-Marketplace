@@ -28,7 +28,7 @@ return new class extends Migration
             $table->decimal('subtotal', 10, 2)->default(0);
             $table->decimal('discount_amount', 10, 2)->default(0);
             $table->decimal('total_amount', 10, 2)->default(0);
-            $table->string('status', 20)->default(BookingStatusEnum::Pending->value);
+            $table->string('status', 20)->default(BookingStatusEnum::PendingPayment->value);
             $table->string('cancellation_reason')->nullable();
             $table->string('cancelled_by', 20)->nullable();
             $table->timestamp('cancelled_at')->nullable();
